@@ -8,8 +8,6 @@ import {
   TouchableOpacity,
   Image,
   Alert,
-  Modal,
-  Pressable,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -29,11 +27,23 @@ import {
   Bell,
   CheckCircle,
 } from 'lucide-react-native';
-import { Colors, Radius, Spacing, Shadows } from '../../src/theme';
+import { Colors, Radius, Spacing } from '../../src/theme';
 import { Header } from '../../src/components/ui/Header';
 import { Card, VirtualNoticeBanner } from '../../src/components/ui/Card';
 import { Badge } from '../../src/components/ui/Badge';
 import { Button } from '../../src/components/ui/Button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '../../src/components/rnr-ui/alert-dialog';
+import { Text as RnrText } from '../../src/components/rnr-ui/text';
 import { useAuth as useSessionAuth } from '../../src/auth/AuthProvider';
 import {
   useAuthStore,
@@ -52,10 +62,6 @@ export default function ProfileScreen() {
   const balance = useWalletStore((state) => state.balance);
 
   const equippedItems = inventory.filter((item) => item.isEquipped);
-
-  const handleLogout = () => {
-    setIsLogoutModalVisible(true);
-  };
 
   const confirmLogout = async () => {
     if (isLoggingOut) return;
@@ -262,22 +268,52 @@ export default function ProfileScreen() {
         </View>
 
         <Card style={styles.menuCard}>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={handleLogout}
-            accessibilityRole="button"
-            accessibilityLabel="Đăng xuất"
-            style={styles.menuItem}
+          <AlertDialog
+            open={isLogoutModalVisible}
+            onOpenChange={(open) => {
+              if (!isLoggingOut) setIsLogoutModalVisible(open);
+            }}
           >
-            <View style={[styles.menuIcon, { backgroundColor: Colors.primaryLight }]}>
-              <LogOut size={18} color={Colors.primary} />
-            </View>
-            <View style={styles.menuContent}>
-              <Text style={[styles.menuTitle, { color: Colors.primaryDark }]}>Đăng xuất</Text>
-              <Text style={styles.menuDesc}>Thoát phiên đăng nhập hiện tại</Text>
-            </View>
-            <ChevronRight size={18} color={Colors.textMuted} />
-          </TouchableOpacity>
+            <AlertDialogTrigger
+              disabled={isLoggingOut}
+              accessibilityLabel="Đăng xuất"
+              className="active:opacity-70"
+              style={styles.menuItem}
+            >
+              <View style={[styles.menuIcon, { backgroundColor: Colors.primaryLight }]}>
+                <LogOut size={18} color={Colors.primary} />
+              </View>
+              <View style={styles.menuContent}>
+                <Text style={[styles.menuTitle, { color: Colors.primaryDark }]}>Đăng xuất</Text>
+                <Text style={styles.menuDesc}>Thoát phiên đăng nhập hiện tại</Text>
+              </View>
+              <ChevronRight size={18} color={Colors.textMuted} />
+            </AlertDialogTrigger>
+
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Bạn có chắc chắn muốn đăng xuất?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Bạn sẽ cần đăng nhập lại để tiếp tục sử dụng EarnMart.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel
+                  disabled={isLoggingOut}
+                  accessibilityLabel="Hủy đăng xuất"
+                >
+                  <RnrText>Hủy</RnrText>
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  disabled={isLoggingOut}
+                  onPress={() => void confirmLogout()}
+                  accessibilityLabel="Xác nhận đăng xuất"
+                >
+                  <RnrText>Đăng xuất</RnrText>
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
           <View style={styles.menuDivider} />
 
@@ -298,53 +334,6 @@ export default function ProfileScreen() {
         </Card>
       </ScrollView>
 
-      <Modal
-        animationType="fade"
-        transparent
-        visible={isLogoutModalVisible}
-        onRequestClose={() => {
-          if (!isLoggingOut) setIsLogoutModalVisible(false);
-        }}
-      >
-        <View style={styles.modalOverlay}>
-          <Pressable
-            accessibilityElementsHidden
-            importantForAccessibility="no-hide-descendants"
-            disabled={isLoggingOut}
-            onPress={() => setIsLogoutModalVisible(false)}
-            style={StyleSheet.absoluteFill}
-          />
-          <View
-            accessibilityRole="alert"
-            accessibilityViewIsModal
-            style={styles.logoutDialog}
-          >
-            <View style={styles.logoutDialogIcon}>
-              <LogOut size={24} color={Colors.error} />
-            </View>
-            <Text style={styles.logoutDialogTitle}>Đăng xuất?</Text>
-            <Text style={styles.logoutDialogMessage}>
-              Bạn có chắc chắn muốn đăng xuất tài khoản?
-            </Text>
-            <View style={styles.logoutDialogActions}>
-              <Button
-                title="Hủy"
-                onPress={() => setIsLogoutModalVisible(false)}
-                disabled={isLoggingOut}
-                variant="outline"
-                style={styles.logoutDialogButton}
-              />
-              <Button
-                title="Đăng xuất"
-                onPress={() => void confirmLogout()}
-                loading={isLoggingOut}
-                variant="danger"
-                style={styles.logoutDialogButton}
-              />
-            </View>
-          </View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 }
@@ -568,51 +557,5 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: Colors.borderLight,
     marginLeft: 66,
-  },
-  modalOverlay: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(15, 23, 42, 0.55)',
-    padding: Spacing.lg,
-  },
-  logoutDialog: {
-    width: '100%',
-    maxWidth: 400,
-    padding: Spacing.lg,
-    borderRadius: Radius.xl,
-    backgroundColor: Colors.surface,
-    alignItems: 'center',
-    ...Shadows.lg,
-  },
-  logoutDialogIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: Radius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FEE2E2',
-    marginBottom: Spacing.md,
-  },
-  logoutDialogTitle: {
-    color: Colors.darkInk,
-    fontSize: 20,
-    fontWeight: '800',
-  },
-  logoutDialogMessage: {
-    marginTop: Spacing.sm,
-    color: Colors.textSecondary,
-    fontSize: 14,
-    lineHeight: 21,
-    textAlign: 'center',
-  },
-  logoutDialogActions: {
-    width: '100%',
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    marginTop: Spacing.lg,
-  },
-  logoutDialogButton: {
-    flex: 1,
   },
 });

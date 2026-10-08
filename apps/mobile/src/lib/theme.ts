@@ -1,0 +1,73 @@
+import { DarkTheme, DefaultTheme, type Theme } from 'expo-router/react-navigation';
+
+export const THEME = {
+  light: {
+    background: 'hsl(228 45.5% 97.8%)',
+    foreground: 'hsl(220.7 37.8% 14.5%)',
+    card: 'hsl(0 0% 100%)',
+    cardForeground: 'hsl(220.7 37.8% 14.5%)',
+    popover: 'hsl(0 0% 100%)',
+    popoverForeground: 'hsl(220.7 37.8% 14.5%)',
+    primary: 'hsl(16 100% 60.4%)',
+    primaryForeground: 'hsl(0 0% 100%)',
+    secondary: 'hsl(173.3 78.6% 40.4%)',
+    secondaryForeground: 'hsl(0 0% 100%)',
+    muted: 'hsl(225 40% 96.1%)',
+    mutedForeground: 'hsl(215.4 16.3% 46.9%)',
+    accent: 'hsl(39.9 89.9% 61%)',
+    accentForeground: 'hsl(220.7 37.8% 14.5%)',
+    destructive: 'hsl(0 72.7% 61.2%)',
+    border: 'hsl(214.3 31.8% 91.4%)',
+    input: 'hsl(214.3 31.8% 91.4%)',
+    ring: 'hsl(16 100% 60.4%)',
+    radius: '0.75rem',
+  },
+  dark: {
+    background: 'hsl(220.7 37.8% 10%)',
+    foreground: 'hsl(210 40% 98%)',
+    card: 'hsl(220.7 37.8% 14.5%)',
+    cardForeground: 'hsl(210 40% 98%)',
+    popover: 'hsl(220.7 37.8% 14.5%)',
+    popoverForeground: 'hsl(210 40% 98%)',
+    primary: 'hsl(16 100% 65%)',
+    primaryForeground: 'hsl(220.7 37.8% 10%)',
+    secondary: 'hsl(173.3 65% 48%)',
+    secondaryForeground: 'hsl(220.7 37.8% 10%)',
+    muted: 'hsl(220.7 28% 20%)',
+    mutedForeground: 'hsl(215 20.2% 72%)',
+    accent: 'hsl(39.9 89.9% 61%)',
+    accentForeground: 'hsl(220.7 37.8% 10%)',
+    destructive: 'hsl(0 72.7% 61.2%)',
+    border: 'hsl(220.7 24% 26%)',
+    input: 'hsl(220.7 24% 26%)',
+    ring: 'hsl(16 100% 65%)',
+    radius: '0.75rem',
+  },
+} as const;
+
+export const NAV_THEME: Record<'light' | 'dark', Theme> = {
+  light: {
+    ...DefaultTheme,
+    colors: {
+      ...DefaultTheme.colors,
+      background: THEME.light.background,
+      border: THEME.light.border,
+      card: THEME.light.card,
+      notification: THEME.light.destructive,
+      primary: THEME.light.primary,
+      text: THEME.light.foreground,
+    },
+  },
+  dark: {
+    ...DarkTheme,
+    colors: {
+      ...DarkTheme.colors,
+      background: THEME.dark.background,
+      border: THEME.dark.border,
+      card: THEME.dark.card,
+      notification: THEME.dark.destructive,
+      primary: THEME.dark.primary,
+      text: THEME.dark.foreground,
+    },
+  },
+};

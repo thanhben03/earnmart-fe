@@ -1,17 +1,23 @@
 import React from 'react';
-import { Stack } from 'expo-router';
+import { Stack, ThemeProvider } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { PortalHost } from '@rn-primitives/portal';
 import { Colors } from '../src/theme';
 import { AuthProvider, useAuth } from '../src/auth/AuthProvider';
+import { NAV_THEME } from '../src/lib/theme';
+import '../global.css';
 
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <StatusBar style="dark" />
-      <AuthProvider>
-        <RootNavigator />
-      </AuthProvider>
+      <ThemeProvider value={NAV_THEME.light}>
+        <StatusBar style="dark" />
+        <AuthProvider>
+          <RootNavigator />
+        </AuthProvider>
+        <PortalHost />
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }
@@ -57,4 +63,3 @@ function RootNavigator() {
     </Stack>
   );
 }
-
