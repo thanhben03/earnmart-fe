@@ -1,0 +1,11 @@
+node_modules/
+.expo/
+dist/
+dist-web/
+*.log
+.env
+.DS_Store
+*.md
+!docs/AUTH_IMPLEMENTATION_PLAN.md
+.agents
+*.docx

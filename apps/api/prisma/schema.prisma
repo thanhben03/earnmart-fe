@@ -1,0 +1,254 @@
+// Prisma Schema for EarnMart — MySQL 8
+// Spec Reference: Section 7.3
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id          String   @id @default(cuid())
+  email       String?  @unique
+  displayName String   @map("display_name")
+  avatarUrl   String?  @map("avatar_url")
+  isGuest     Boolean  @default(true) @map("is_guest")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  profile          UserProfile?
+  wallet           Wallet?
+  transactions     WalletTransaction[]
+  cart             Cart?
+  orders           Order[]
+  inventory        InventoryItem[]
+  activitySessions ActivitySession[]
+  rewardClaims     RewardClaim[]
+  missionProgress  UserMissionProgress[]
+
+  @@map("users")
+}
+
+model UserProfile {
+  id                 String    @id @default(cuid())
+  userId             String    @unique @map("user_id")
+  level              Int       @default(1)
+  streakDays         Int       @default(0) @map("streak_days")
+  lastCheckinDate    String?   @map("last_checkin_date")
+  totalQuizzesPassed Int       @default(0) @map("total_quizzes_passed")
+  totalWordsMatched  Int       @default(0) @map("total_words_matched")
+  totalKmWalked      Float     @default(0.0) @map("total_km_walked")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+model Wallet {
+  id             String   @id @default(cuid())
+  userId         String   @unique @map("user_id")
+  balance        BigInt   @default(0) // EC Coins (Strictly integer BigInt)
+  lifetimeEarned BigInt   @default(0) @map("lifetime_earned")
+  lifetimeSpent  BigInt   @default(0) @map("lifetime_spent")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("wallets")
+}
+
+model WalletTransaction {
+  id             String   @id @default(cuid())
+  userId         String   @map("user_id")
+  delta          BigInt   // Signed: positive = earn, negative = spend
+  type           String   // WELCOME, DAILY_CHECKIN, ENGLISH_QUIZ, WORD_MATCH, WALK_REWARD, SHOP_PURCHASE
+  title          String
+  description    String?
+  referenceType  String?  @map("reference_type")
+  referenceId    String?  @map("reference_id")
+  idempotencyKey String?  @unique @map("idempotency_key")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("wallet_transactions")
+}
+
+model Category {
+  id        String    @id @default(cuid())
+  name      String
+  slug      String    @unique
+  iconName  String    @map("icon_name")
+  sortOrder Int       @default(0) @map("sort_order")
+  products  Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id               String   @id @default(cuid())
+  categoryId       String   @map("category_id")
+  name             String
+  description      String   @db.Text
+  usageDescription String   @db.Text @map("usage_description")
+  priceCoins       BigInt   @map("price_coins")
+  stock            Int?     // null means unlimited virtual supply
+  imageUrl         String   @map("image_url")
+  badge            String?
+  isActive         Boolean  @default(true) @map("is_active")
+  virtualType      String   @map("virtual_type")
+  isPopular        Boolean  @default(false) @map("is_popular")
+  isNew            Boolean  @default(false) @map("is_new")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  category  Category        @relation(fields: [categoryId], references: [id])
+  cartItems CartItem[]
+  inventory InventoryItem[]
+
+  @@index([categoryId, isActive])
+  @@map("products")
+}
+
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String     @unique @map("user_id")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+  items     CartItem[]
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("carts")
+}
+
+model CartItem {
+  id        String @id @default(cuid())
+  cartId    String @map("cart_id")
+  productId String @map("product_id")
+  quantity  Int    @default(1)
+
+  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@unique([cartId, productId])
+  @@map("cart_items")
+}
+
+model Order {
+  id             String      @id @default(cuid())
+  userId         String      @map("user_id")
+  totalCoins     BigInt      @map("total_coins")
+  status         String      @default("COMPLETED")
+  isVirtual      Boolean     @default(true) @map("is_virtual")
+  idempotencyKey String?     @unique @map("idempotency_key")
+  createdAt      DateTime    @default(now()) @map("created_at")
+  items          OrderItem[]
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id              String @id @default(cuid())
+  orderId         String @map("order_id")
+  productId       String @map("product_id")
+  productName     String @map("product_name")
+  unitPriceCoins  BigInt @map("unit_price_coins")
+  quantity        Int    @default(1)
+  imageUrl        String @map("image_url")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_items")
+}
+
+model InventoryItem {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  productId  String   @map("product_id")
+  quantity   Int      @default(1)
+  isEquipped Boolean  @default(false) @map("is_equipped")
+  acquiredAt DateTime @default(now()) @map("acquired_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("inventory_items")
+}
+
+model LearningQuestion {
+  id                 String @id @default(cuid())
+  topic              String
+  topicLabel         String @map("topic_label")
+  prompt             String @db.Text
+  choicesJson        String @db.Text @map("choices_json")
+  correctAnswerIndex Int    @map("correct_answer_index")
+  explanation        String @db.Text
+
+  @@map("learning_questions")
+}
+
+model ActivitySession {
+  id             String    @id @default(cuid())
+  userId         String    @map("user_id")
+  activityType   String    @map("activity_type")
+  status         String    @default("COMPLETED")
+  score          Int?
+  distanceMeters Float?    @map("distance_meters")
+  durationSec    Int?      @map("duration_sec")
+  isSimulated    Boolean   @default(false) @map("is_simulated")
+  startedAt      DateTime  @default(now()) @map("started_at")
+  finishedAt     DateTime? @map("finished_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, startedAt])
+  @@map("activity_sessions")
+}
+
+model RewardClaim {
+  id             String   @id @default(cuid())
+  userId         String   @map("user_id")
+  ruleKey        String   @map("rule_key")
+  awardedCoins   BigInt   @map("awarded_coins")
+  idempotencyKey String   @unique @map("idempotency_key")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("reward_claims")
+}
+
+model DailyMission {
+  id          String @id @default(cuid())
+  key         String @unique
+  title       String
+  description String
+  target      Int
+  rewardCoins Int    @map("reward_coins")
+  icon        String
+
+  progress UserMissionProgress[]
+
+  @@map("daily_missions")
+}
+
+model UserMissionProgress {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  missionId String    @map("mission_id")
+  dateUtc   String    @map("date_utc")
+  progress  Int       @default(0)
+  claimedAt DateTime? @map("claimed_at")
+
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mission DailyMission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, missionId, dateUtc])
+  @@map("user_mission_progress")
+}
+
