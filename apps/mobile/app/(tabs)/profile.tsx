@@ -8,6 +8,8 @@ import {
   TouchableOpacity,
   Image,
   Alert,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -42,6 +44,8 @@ import {
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, logout } = useSessionAuth();
+  const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const profile = useAuthStore((state) => state.profile);
   const inventory = useInventoryStore((state) => state.inventory);
   const orders = useInventoryStore((state) => state.orders);
@@ -50,16 +54,22 @@ export default function ProfileScreen() {
   const equippedItems = inventory.filter((item) => item.isEquipped);
 
   const handleLogout = () => {
-    Alert.alert('Đăng xuất', 'Bạn có chắc chắn muốn đăng xuất tài khoản?', [
-      { text: 'Hủy', style: 'cancel' },
-      {
-        text: 'Đăng xuất',
-        style: 'destructive',
-        onPress: () => {
-          void logout().then(() => router.replace('/login'));
-        },
-      },
-    ]);
+    setIsLogoutModalVisible(true);
+  };
+
+  const confirmLogout = async () => {
+    if (isLoggingOut) return;
+
+    setIsLoggingOut(true);
+    try {
+      await logout();
+    } catch {
+      // AuthProvider still clears the local session when the server is unavailable.
+    } finally {
+      setIsLoggingOut(false);
+      setIsLogoutModalVisible(false);
+      router.replace('/login');
+    }
   };
 
   const handleDeleteAccount = () => {
@@ -255,6 +265,8 @@ export default function ProfileScreen() {
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={handleLogout}
+            accessibilityRole="button"
+            accessibilityLabel="Đăng xuất"
             style={styles.menuItem}
           >
             <View style={[styles.menuIcon, { backgroundColor: Colors.primaryLight }]}>
@@ -285,6 +297,54 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </Card>
       </ScrollView>
+
+      <Modal
+        animationType="fade"
+        transparent
+        visible={isLogoutModalVisible}
+        onRequestClose={() => {
+          if (!isLoggingOut) setIsLogoutModalVisible(false);
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <Pressable
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            disabled={isLoggingOut}
+            onPress={() => setIsLogoutModalVisible(false)}
+            style={StyleSheet.absoluteFill}
+          />
+          <View
+            accessibilityRole="alert"
+            accessibilityViewIsModal
+            style={styles.logoutDialog}
+          >
+            <View style={styles.logoutDialogIcon}>
+              <LogOut size={24} color={Colors.error} />
+            </View>
+            <Text style={styles.logoutDialogTitle}>Đăng xuất?</Text>
+            <Text style={styles.logoutDialogMessage}>
+              Bạn có chắc chắn muốn đăng xuất tài khoản?
+            </Text>
+            <View style={styles.logoutDialogActions}>
+              <Button
+                title="Hủy"
+                onPress={() => setIsLogoutModalVisible(false)}
+                disabled={isLoggingOut}
+                variant="outline"
+                style={styles.logoutDialogButton}
+              />
+              <Button
+                title="Đăng xuất"
+                onPress={() => void confirmLogout()}
+                loading={isLoggingOut}
+                variant="danger"
+                style={styles.logoutDialogButton}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -508,5 +568,51 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: Colors.borderLight,
     marginLeft: 66,
+  },
+  modalOverlay: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(15, 23, 42, 0.55)',
+    padding: Spacing.lg,
+  },
+  logoutDialog: {
+    width: '100%',
+    maxWidth: 400,
+    padding: Spacing.lg,
+    borderRadius: Radius.xl,
+    backgroundColor: Colors.surface,
+    alignItems: 'center',
+    ...Shadows.lg,
+  },
+  logoutDialogIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: Radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FEE2E2',
+    marginBottom: Spacing.md,
+  },
+  logoutDialogTitle: {
+    color: Colors.darkInk,
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  logoutDialogMessage: {
+    marginTop: Spacing.sm,
+    color: Colors.textSecondary,
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: 'center',
+  },
+  logoutDialogActions: {
+    width: '100%',
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginTop: Spacing.lg,
+  },
+  logoutDialogButton: {
+    flex: 1,
   },
 });

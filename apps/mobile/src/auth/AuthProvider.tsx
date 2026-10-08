@@ -103,9 +103,13 @@ export function AuthProvider({ children }: React.PropsWithChildren) {
 
   const logout = useCallback(async () => {
     try { await sessionClient.request('/auth/logout', { method: 'POST' }); } finally {
-      await sessionClient.clear();
-      setUser(null);
-      setStatus('unauthenticated');
+      try {
+        await sessionClient.clear();
+      } finally {
+        setUser(null);
+        setMessage('');
+        setStatus('unauthenticated');
+      }
     }
   }, []);
 
